@@ -1,0 +1,2 @@
+#!/bin/sh
+ls **/* | entr sh -c "./build | xclip -sel clip"

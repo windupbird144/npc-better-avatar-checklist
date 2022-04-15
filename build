@@ -1,0 +1,3 @@
+#!/bin/sh
+cat src/banner > out.user.js
+esbuild --bundle src/main.js >> out.user.js
