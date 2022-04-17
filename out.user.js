@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Avatar/Stamps checklist
 // @namespace    https://github.com/windupbird144/
-// @version      0.2
+// @version      0.3
 // @description  Improve avatar/stamp collection pages 
 // @author       github.com/windupbird144
 // @include      https://neopetsclassic.com/collection/?category_id=22
@@ -29,9 +29,9 @@
       name = name.trim();
       description = description.trim();
       rarity = parseInt(rarity, 10);
-      let [done, inventory, sdb, shop] = [0, 4, 5, 6].map((i) => e.children[i]).map(isDone);
+      let [done2, inventory, sdb, shop] = [0, 4, 5, 6].map((i) => e.children[i]).map(isDone);
       let images = Array.from(e.children).slice(4, 7).map((e2) => e2.outerHTML).join("");
-      return { url: url3, name, rarity, description, done, inventory, sdb, shop, images };
+      return { url: url3, name, rarity, description, done: done2, inventory, sdb, shop, images };
     });
     const form = document.querySelector(`form[action="/collection/"]`);
     form.parentElement.insertAdjacentElement("beforebegin", form.cloneNode(true));
@@ -39,7 +39,10 @@
     let table = document.querySelector("#center");
     table.parentElement.removeChild(table);
     const target = document.querySelector(".content");
-    table = `<table id="userscript-stamps">
+    const total = stamps.length;
+    const done = stamps.filter((e) => e.done).length;
+    table = `<p>You own <b>${done}</b> out of <b>${total}</b> items in this category.</p>
+    <table id="userscript-stamps">
         <thead>
             <tr>
                 <td></td>

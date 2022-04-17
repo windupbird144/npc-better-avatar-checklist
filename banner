@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Avatar/Stamps checklist
 // @namespace    https://github.com/windupbird144/
-// @version      0.2
+// @version      0.3
 // @description  Improve avatar/stamp collection pages 
 // @author       github.com/windupbird144
 // @include      https://neopetsclassic.com/collection/?category_id=22

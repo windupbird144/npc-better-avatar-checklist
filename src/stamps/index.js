@@ -33,7 +33,10 @@ function handler() {
 
     // insret new gui
     const target = document.querySelector(".content")
-    table = `<table id="userscript-stamps">
+    const total = stamps.length
+    const done = stamps.filter(e => e.done).length
+    table = `<p>You own <b>${done}</b> out of <b>${total}</b> items in this category.</p>
+    <table id="userscript-stamps">
         <thead>
             <tr>
                 <td></td>
