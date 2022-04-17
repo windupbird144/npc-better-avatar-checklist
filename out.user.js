@@ -1,15 +1,88 @@
 // ==UserScript==
-// @name         Better avatar checklist
+// @name         Avatar/Stamps checklist
 // @namespace    https://github.com/windupbird144/
-// @version      0.1
-// @description  Shows jellyclassic avatar solutions in your neobaord checklist 
+// @version      0.2
+// @description  Improve avatar/stamp collection pages 
 // @author       github.com/windupbird144
-// @match        https://neopetsclassic.com/neoboards/avatars/?username=*
+// @include      https://neopetsclassic.com/collection/?category_id=22
+// @include      https://neopetsclassic.com/neoboards/avatars/?username=*
 // @grant        none
 // @license      MIT
 // ==/UserScript==
 (() => {
-  // src/avatars.json
+  // src/shared.js
+  function toRelativeUrl(s) {
+    return s.replace(/https?:\/\/neopetsclassic.com/, "").replace("//", "/");
+  }
+
+  // src/stamps/index.js
+  var isDone = (elem) => elem.style.filter === "";
+  var icon = (bool) => bool ? "&check;" : "";
+  var url = "/collection/?category_id=22";
+  function handler() {
+    const unmatched = [];
+    const stamps = Array.from(document.querySelectorAll(".inventoryitem")).map((e) => {
+      const img = e.children[0];
+      const url3 = toRelativeUrl(img.src);
+      let [name, rest] = img.title.split(" (r");
+      let [rarity, description] = rest.split(") : ");
+      name = name.trim();
+      description = description.trim();
+      rarity = parseInt(rarity, 10);
+      let [done, inventory, sdb, shop] = [0, 4, 5, 6].map((i) => e.children[i]).map(isDone);
+      let images = Array.from(e.children).slice(4, 7).map((e2) => e2.outerHTML).join("");
+      return { url: url3, name, rarity, description, done, inventory, sdb, shop, images };
+    });
+    const form = document.querySelector(`form[action="/collection/"]`);
+    form.parentElement.insertAdjacentElement("beforebegin", form.cloneNode(true));
+    form.parentElement.removeChild(form.nextElementSibling);
+    let table = document.querySelector("#center");
+    table.parentElement.removeChild(table);
+    const target = document.querySelector(".content");
+    table = `<table id="userscript-stamps">
+        <thead>
+            <tr>
+                <td></td>
+                <td>Name</td>
+                <td>Rarity</td>
+                <td>Seen</td>
+                <td>Locations</td>
+            </tr>
+        </thead>
+        <tbody>
+        ${stamps.sort((a, b) => a.done > b.done ? 1 : b.done > a.done ? -1 : a.rarity - b.rarity).map((e) => `<tr>
+                <td><img src="${e.url}" title="${e.name} (r${e.rarity}) : ${e.description}"/></td>
+                <td>${e.name}</td>
+                <td>${e.rarity}</td>
+                <td>${icon(e.done)}</td>
+                <td>${e.done ? e.images : ""}</td>
+            </tr>`).join("")}
+        </tbody>
+    </table>
+    <style>
+    #userscript-stamps thead tr {
+        background-color: #efedc0
+    }
+    #userscript-stamps thead td,
+    #userscript-stamps thead td > img {
+        padding-right: 1em;
+    }    
+    #userscript-stamps tbody tr:nth-of-type(even) {
+        background-color: #ffffaa;
+    }
+    
+    #userscript-stamps {
+        border-collapse: collapse;
+    }
+    </style>`;
+    target.insertAdjacentHTML("beforeend", table);
+  }
+  var stamps_default = {
+    url,
+    handler
+  };
+
+  // src/avatars/avatars.json
   var avatars_default = [
     {
       url: "/images/avatars/codestones.gif",
@@ -1307,90 +1380,104 @@
     }
   ];
 
-  // src/main.js
-  var images = Array.from(document.querySelectorAll(`img[src*="avatars"]`));
-  var notFound = [];
-  for (let image of images) {
-    const done = !image.style.filter;
-    const info = avatars_default.findIndex((e) => e.url === image.src || e.avatar === image.title);
-    if (info > -1) {
-      avatars_default[info].done = done;
-    } else {
-      notFound.push({ avatar: image.title, done });
-      console.warn("the following image was found on the neoboards page, but is not in avatars.json. check for a url change, name change or new avatars and update the script.");
-      console.log(image);
+  // src/avatars/index.js
+  var url2 = "/neoboards/avatars/?username=";
+  function handler2() {
+    const images = Array.from(document.querySelectorAll(`img[src*="avatars"]`));
+    let notFound = [];
+    for (let image of images) {
+      const done = !image.style.filter;
+      const i = avatars_default.findIndex((e) => e.url === image.src || e.avatar === image.title);
+      if (i > -1) {
+        avatars_default[i].done = done;
+      } else {
+        notFound.push({ avatar: image.title, done });
+        console.warn("the following image was found on the neoboards page, but is not in avatars.json. check for a url change, name change or new avatars and update the script.");
+        console.log(image);
+      }
     }
+    const table = `
+    <section id="userscript-avatars">
+        ${(() => {
+      if (notFound.length) {
+        return `The following avatar are unknown, please check for userscript updates. <ul>
+                    ${notFound.map((e) => `<li>${e.avatar} (${e.done ? "completed" : "missing"})</li>`).join("")}
+                </ul>`;
+      }
+      return "";
+    })()}
+        <fieldset>
+            <label><input type="radio" name="userscript-show" value="all">Show all</label>
+            <label><input type="radio" name="userscript-show" value="completed">Show completed</label>
+            <label><input type="radio" name="userscript-show" value="missing">Show missing</label>
+        </fieldset>
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Avatar</th>
+                    <th>Type</th>
+                    <th>Method</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${avatars_default.map((e) => `<tr data-done="${e.done}" data-retired="${e.retired}">
+                        <td><img src="${e.url}" /></td>
+                        <td>${e.avatar}</td>
+                        <td>${e.type}</td>
+                        <td>${e.method}</td>
+                    </tr>`).join("")}
+            </tbody>
+        </table>
+    </section>
+    <style>
+    #userscript-avatars label {
+        cursor: pointer;
+    }
+    #userscript-avatars label:hover {
+        text-decoration: underline
+    }
+    #userscript-avatars td {
+        border: 1px solid #aaa;
+    }
+    [data-done="true"] {
+        background: lightgreen;
+    }
+    [data-done="false"][data-retired="true"][data-done="false"] {
+        background: repeating-linear-gradient(-45deg, #ccc, #ccc 10px, #ddd 10px, #ddd 20px)
+    }
+    #userscript-avatars[data-show="completed"] [data-done="false"],
+    #userscript-avatars[data-show="missing"] [data-done="true"] {
+        display: none;
+    }
+    </style>`;
+    const target = document.querySelector("#center");
+    target.insertAdjacentHTML("beforebegin", table);
+    const settings = {
+      get showPreference() {
+        return localStorage.getItem("show-preference") ?? "all";
+      },
+      set showPreference(value) {
+        localStorage.setItem("show-preference", value);
+        document.querySelector("#userscript-avatars").dataset.show = value;
+      }
+    };
+    document.querySelector("#userscript-avatars fieldset").addEventListener("change", (e) => {
+      settings.showPreference = e.target.value;
+    });
+    settings.showPreference = settings.showPreference;
+    document.querySelector(`#userscript-avatars input[value="${settings.showPreference}"]`).checked = true;
+    target.parentElement.removeChild(target.nextElementSibling);
   }
-  var table = `
-<section id="userscript-avatars">
-    ${(() => {
-    if (notFound.length) {
-      return `The following avatar are unknown, please check for userscript updates. <ul>
-                ${notFound.map((e) => `<li>${e.avatar} (${e.done ? "completed" : "missing"})</li>`).join("")}
-            </ul>`;
-    }
-    return "";
-  })()}
-    <fieldset>
-        <label><input type="radio" name="userscript-show" value="all">Show all</label>
-        <label><input type="radio" name="userscript-show" value="completed">Show completed</label>
-        <label><input type="radio" name="userscript-show" value="missing">Show missing</label>
-    </fieldset>
-    <table>
-        <thead>
-            <tr>
-                <th></th>
-                <th>Avatar</th>
-                <th>Type</th>
-                <th>Method</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${avatars_default.map((e) => `<tr data-done="${e.done}" data-retired="${e.retired}">
-                    <td><img src="${e.url}" /></td>
-                    <td>${e.avatar}</td>
-                    <td>${e.type}</td>
-                    <td>${e.method}</td>
-                </tr>`).join("")}
-        </tbody>
-    </table>
-</section>
-<style>
-#userscript-avatars label {
-    cursor: pointer;
-}
-#userscript-avatars label:hover {
-    text-decoration: underline
-}
-#userscript-avatars td {
-    border: 1px solid #aaa;
-}
-[data-done="true"] {
-    background: lightgreen;
-}
-[data-done="false"][data-retired="true"][data-done="false"] {
-    background: repeating-linear-gradient(-45deg, #ccc, #ccc 10px, #ddd 10px, #ddd 20px)
-}
-#userscript-avatars[data-show="completed"] [data-done="false"],
-#userscript-avatars[data-show="missing"] [data-done="true"] {
-    display: none;
-}
-</style>`;
-  var target = document.querySelector("#center");
-  target.insertAdjacentHTML("beforebegin", table);
-  var settings = {
-    get showPreference() {
-      return localStorage.getItem("show-preference") ?? "all";
-    },
-    set showPreference(value) {
-      localStorage.setItem("show-preference", value);
-      document.querySelector("#userscript-avatars").dataset.show = value;
-    }
+  var avatars_default2 = {
+    url: url2,
+    handler: handler2
   };
-  document.querySelector("#userscript-avatars fieldset").addEventListener("change", (e) => {
-    settings.showPreference = e.target.value;
-  });
-  settings.showPreference = settings.showPreference;
-  document.querySelector(`#userscript-avatars input[value="${settings.showPreference}"]`).checked = true;
-  target.parentElement.removeChild(target.nextElementSibling);
+
+  // src/index.js
+  var scripts = [stamps_default, avatars_default2];
+  var script = scripts.find((e) => window.location.href.includes(e.url));
+  if (script) {
+    script.handler();
+  }
 })();

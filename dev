@@ -1,2 +1,2 @@
 #!/bin/sh
-ls **/* | entr sh -c "./build | xclip -sel clip"
+fd | entr sh -c "./build | tee out.user.js | xclip -sel clip"
