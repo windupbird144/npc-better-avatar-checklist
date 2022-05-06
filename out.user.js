@@ -1380,6 +1380,13 @@
       type: "",
       method: "TBC - Something something Stock Market.",
       retired: false
+    },
+    {
+      url: "/images/avatars/maraquan_lutari_vika.gif",
+      avatar: "Maraquan Lutari",
+      type: "Clickables",
+      method: 'Visit the pet lookup of a Maraquan Lutari.				<br><b>Pets: </b>\n									(<a href="https://neopetsclassic.com/petlookup/?pet_name=Melodia" target="new">Melodia</a>)',
+      retired: false
     }
   ];
 
